@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  mongodb:
+    restart: always
+    image: mongo:latest
+    volumes:
+      - ./docker_data/db:/data/db
+    ports:
+      - "27017:27017"
+    command: mongod
+    env_file:
+      - .env
+    environment:
+      MONGO_DATA_DIR: /docker_data/db
+      MONGO_INITDB_ROOT_USERNAME: $MONGO_DB_USERNAME
+      MONGO_INITDB_ROOT_PASSWORD: $MONGO_DB_PASSWORD
+
+  bot:
+    build: .
+    working_dir: /bot
+    volumes:
+      - .:/bot
+    environment:
+      - BOT_API_TOKEN=$API_TOKEN
+    depends_on:
+      - mongodb
+    links:
+      - mongodb
+    command: python main.py
