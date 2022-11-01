@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, List
 from datetime import datetime
 
 
@@ -21,5 +21,12 @@ class AnecdoteType(TypedDict):
     text: str
 
 
+class ResultType(TypedDict):
+    username: str
+    result: str
+
+
 class GameType(TypedDict):
     id: int
+    results: List[ResultType]
+    played_at: datetime

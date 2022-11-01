@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
-from typing import List
+from typing import List, Optional
 from db_types import UserType, AnecdoteType, GameType
 
 ca = certifi.where()
@@ -18,7 +18,7 @@ dotenv_path = join(dirname(__file__), './.env')
 load_dotenv(dotenv_path)
 
 
-def create_user(db: Database, message: Message):
+def create_user(db: Database, message: Message) -> Optional[bool]:
     users: Collection[UserType] = db.users
     user = users.find_one({"id": message.from_user.id, "chat_id": message.chat.id})
     if user:
@@ -35,13 +35,14 @@ def create_user(db: Database, message: Message):
         "created_at": datetime.now(),
         "updated_at": None,
         "points": 0,
+        "activity": 0,
     }
     inserted = db.users.insert_one(new_user)
 
     return bool(inserted)
 
 
-def update_user(db: Database, message: Message):
+def update_user(db: Database, message: Message) -> Optional[bool]:
     users: Collection[UserType] = db.users
     updated = users.find_one_and_update(
         {
@@ -71,23 +72,14 @@ def get_random_anecdote(db: Database, message: Message) -> str:
     return random_anecdote.get("text").replace("\\n", "\n")
 
 
-def create_game(db: Database, message: Message):
-    pass
-    # games: Collection[User] = db.games
-    # game = games.find_one({"id": message.from_user.id, "chat_id": message.chat.id})
-    # if games:
-    #     return None
-    #
-    # new_game = {
-    #     "id": message.from_user.id,
-    #     "results": {
-    #
-    #     }
-    #     "played_at": datetime.now(),
-    # }
-    # inserted = db.users.insert_one(new_game)
-    #
-    # return bool(inserted)
+def create_game(db: Database, results):
+    games: Collection[GameType] = db.games
+    new_game = {
+        "results": {**results},
+        "played_at": datetime.now(),
+    }
+    inserted = db.games.insert_one(new_game)
+    return bool(inserted)
 
 
 def connect() -> MongoClient:
