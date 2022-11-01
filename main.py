@@ -7,7 +7,7 @@ from mongodb import create_user, create_game, get_top_users, get_random_anecdote
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher, filters
 from aiogram.utils import executor
-from game import Game, PROMPT, GAME_STATUS, PLAYER_STATUS, ALREADY_PICKED_SLOT, GAME_ENDING, GAME_ENDED, \
+from minigame import Game, PROMPT, GAME_STATUS, PLAYER_STATUS, ALREADY_PICKED_SLOT, GAME_ENDING, GAME_ENDED, \
     RESULT_ANNOUNCEMENTS, END_PHRASE
 
 client = connect()
@@ -19,7 +19,7 @@ dp = Dispatcher(bot)
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-game_instance = Game()
+mini_game = Game()
 
 
 @dp.message_handler(commands=['anecdote'])
@@ -58,9 +58,9 @@ async def help(message: types.Message):
 async def top(message: types.Message):
     top_users = get_top_users(db, message)
     leaderboard = '\n'.join(
-        f'{emoji:^5}{idx + 1:^5}\\. @{user["username"]:<} \\- {user["points"]:<20}' for idx, (user, emoji) in
+        f'{emoji:^5}{idx + 1}\\.  @{user["username"]:<} \\- {user["points"]:<20}' for idx, (user, emoji) in
         enumerate(zip(top_users, get_random_emojis())))
-    heading = "*Главные любители _сомнительного_ юмора*"
+    heading = "*Главные любители _сомнительного_ юмора:*"
     await message.answer(f'{heading:^}\n\n{leaderboard}', parse_mode=ParseMode.MARKDOWN_V2)
 
 
@@ -71,29 +71,29 @@ async def leave(message: types.Message):
 
 @dp.message_handler(commands=['game'])
 async def game(message: types.Message):
-    game_instance.start_game()
+    mini_game.start_game()
     await message.answer('🫠')
-    await message.answer(PROMPT, reply_markup=game_instance.get_board())
+    await message.answer(PROMPT, reply_markup=mini_game.get_board())
 
 
 @dp.callback_query_handler(lambda c: c.data and c.data not in [*GAME_STATUS, *PLAYER_STATUS])
 async def process_picked_slot(callback_query: types.CallbackQuery):
-    revealed_slot = game_instance.reveal(callback_query.from_user.id, callback_query.from_user.username,
-                                         int(callback_query.data))
+    revealed_slot = mini_game.reveal(callback_query.from_user.id, callback_query.from_user.username,
+                                     int(callback_query.data))
     if revealed_slot == ALREADY_PICKED_SLOT:
-        await bot.answer_callback_query(callback_query.id, "Дай другим поиграть, негодяй!", show_alert=True)
+        await bot.answer_callback_query(callback_query.id, "Одна игра - одна попытка 😉", show_alert=True)
     else:
         await callback_query.message.edit_text(
-            text=f'{callback_query.message.text}\n@{callback_query.from_user.username} {RESULT_ANNOUNCEMENTS.get(revealed_slot)}',
-            reply_markup=game_instance.get_board())
+            text=f'\n{callback_query.message.text}\n@{callback_query.from_user.username} {RESULT_ANNOUNCEMENTS.get(revealed_slot)}',
+            reply_markup=mini_game.get_board())
 
 
 @dp.callback_query_handler(lambda c: c.data and c.data in [*GAME_STATUS, *PLAYER_STATUS])
 async def process_game_results(callback_query: types.CallbackQuery):
     if callback_query.data == GAME_ENDING:
-        game_results = game_instance.get_results()
+        game_results = mini_game.get_results()
         created = create_game(db, game_results)
-        game_results_markup = game_instance.end_game()
+        game_results_markup = mini_game.end_game()
         await callback_query.message.edit_text(
             text=f'{callback_query.message.text}\n\n{END_PHRASE} @{callback_query.from_user.username}',
             reply_markup=game_results_markup)

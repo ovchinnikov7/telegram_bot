@@ -49,8 +49,6 @@ class Game:
         self.game_going = True
 
     def reveal(self, player_id, player_username, button_id):
-        if not self.game_going:
-            return GAME_ENDED
         if player_id in self.players_results:
             return ALREADY_PICKED_SLOT
         slot_result = self.answers[button_id]

@@ -65,14 +65,14 @@ def get_top_users(db: Database, message: Message) -> List[UserType]:
     return top_users
 
 
-def get_random_anecdote(db: Database, message: Message) -> str:
+def get_random_anecdote(db: Database, message: Message) -> Optional[str]:
     updated = update_user(db, message)
     anecdotes: Collection[AnecdoteType] = db.anecdotes
     random_anecdote: AnecdoteType = anecdotes.aggregate([{"$sample": {'size': 1}}]).next()
     return random_anecdote.get("text").replace("\\n", "\n")
 
 
-def create_game(db: Database, results):
+def create_game(db: Database, results) -> Optional[bool]:
     games: Collection[GameType] = db.games
     new_game = {
         "results": {**results},
