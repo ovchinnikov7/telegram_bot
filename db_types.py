@@ -2,7 +2,7 @@ from typing import TypedDict
 from datetime import datetime
 
 
-class User(TypedDict):
+class UserType(TypedDict):
     id: int
     username: str
     chat_id: int
@@ -15,5 +15,11 @@ class User(TypedDict):
     points: int
 
 
-class Game(TypedDict):
+class AnecdoteType(TypedDict):
+    _id: int
+    category: int
+    text: str
+
+
+class GameType(TypedDict):
     id: int

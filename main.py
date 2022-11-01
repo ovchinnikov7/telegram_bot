@@ -3,11 +3,12 @@ import logging
 
 from telegram import ParseMode
 from randomizer import *
-from mongodb import create_user, update_user, get_top_users, connect
+from mongodb import create_user, get_top_users, get_random_anecdote, connect
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher, filters
 from aiogram.utils import executor
-from game import Game
+from game import Game, PROMPT, GAME_STATUS, PLAYER_STATUS, ALREADY_PICKED_SLOT, ENDING, ENDED, \
+    RESULT_ANNOUNCEMENTS, END_PHRASE
 
 client = connect()
 db = client.get_database(os.environ.get('MONGO_DB_NAME'))
@@ -21,10 +22,21 @@ logger = logging.getLogger(__name__)
 game_instance = Game()
 
 
+@dp.message_handler(commands=['anecdote'])
+async def trigger(message: types.Message):
+    anecdote = get_random_anecdote(db, message)
+    await message.answer(anecdote or 'Ты мне не нравишься 🤬')
+
+
 @dp.message_handler(filters.Text(contains=['анек'], ignore_case=True))
 async def trigger(message: types.Message):
-    updated = update_user(db, message)
-    await message.answer(f'Ты мне не нравишься 🤬')
+    anecdote = get_random_anecdote(db, message)
+    await message.answer(anecdote or 'Ты мне не нравишься 🤬')
+
+
+@dp.message_handler(commands=['c'], commands_ignore_caption=False, content_types=types.ContentType.ANY)
+async def test(message: types.Message):
+    await message.answer(f'TESTING')
 
 
 @dp.message_handler(commands=['start'])
@@ -60,32 +72,31 @@ async def leave(message: types.Message):
 @dp.message_handler(commands=['game'])
 async def game(message: types.Message):
     game_instance.start_game()
-    await message.answer('🫡')
-    await message.answer('Угадайте, где лежит печенье 🍪 и постарайтесь не наткнуться на бомбу 💣',
-                         reply_markup=game_instance.get_board())
+    await message.answer('🫠')
+    await message.answer(PROMPT, reply_markup=game_instance.get_board())
 
 
-@dp.callback_query_handler(lambda c: c.data and c.data != '-1')
-async def process_game(callback_query: types.CallbackQuery):
-    revealed = game_instance.reveal_one(int(callback_query.from_user.id), callback_query.from_user.username,
-                                        int(callback_query.data))
-    if revealed == -1:
-        await bot.answer_callback_query(callback_query.id, "Другим дай поиграть, негодяй!", show_alert=True)
+@dp.callback_query_handler(lambda c: c.data and c.data not in [*GAME_STATUS, *PLAYER_STATUS])
+async def process_picked_slot(callback_query: types.CallbackQuery):
+    revealed_slot = game_instance.reveal(callback_query.from_user.id, callback_query.from_user.username,
+                                         int(callback_query.data))
+    if revealed_slot == ALREADY_PICKED_SLOT:
+        await bot.answer_callback_query(callback_query.id, "Дай другим поиграть, негодяй!", show_alert=True)
     else:
-        await bot.edit_message_reply_markup(callback_query.message.chat.id, callback_query.message.message_id,
-                                            callback_query.inline_message_id, reply_markup=game_instance.get_board())
+        await callback_query.message.edit_text(
+            text=f'{callback_query.message.text}\n@{callback_query.from_user.username} {RESULT_ANNOUNCEMENTS.get(revealed_slot)}',
+            reply_markup=game_instance.get_board())
 
 
-@dp.callback_query_handler(lambda c: c.data == '-1')
-async def finish_game(callback_query: types.CallbackQuery):
-    results = game_instance.end_game()
-    if results == -1:
-        await bot.answer_callback_query(callback_query.id, "Игра уже окончена.", show_alert=True)
-    else:
-        # create_game(db, results)
-        game_instance.clear()
-    await bot.edit_message_reply_markup(callback_query.message.chat.id, callback_query.message.message_id,
-                                        callback_query.inline_message_id, reply_markup=game_instance.get_board())
+@dp.callback_query_handler(lambda c: c.data and c.data in [*GAME_STATUS, *PLAYER_STATUS])
+async def process_game_results(callback_query: types.CallbackQuery):
+    if callback_query.data == ENDING:
+        game_results = game_instance.end_game()
+        await callback_query.message.edit_text(
+            text=f'{callback_query.message.text}\n\n{END_PHRASE} @{callback_query.from_user.username}',
+            reply_markup=game_results)
+    elif callback_query.data == ENDED:
+        await bot.answer_callback_query(callback_query.id, "Эта игра уже окончена!", show_alert=True)
 
 
 async def setup_bot_commands(disp):

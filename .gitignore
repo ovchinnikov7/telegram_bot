@@ -2,3 +2,4 @@ venv
 docker_data
 .idea
 #.env
+migration.py
