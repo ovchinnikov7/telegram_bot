@@ -3,4 +3,4 @@ docker_data
 .idea
 #.env
 migration.py
-_site
+#_site
