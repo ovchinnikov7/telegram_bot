@@ -8,7 +8,7 @@ from telegram.parsemode import ParseMode
 
 from minigame import Game, PROMPT, GAME_STATUS, PLAYER_STATUS, ALREADY_PICKED_SLOT, GAME_ENDING, GAME_ENDED, \
     RESULT_ANNOUNCEMENTS, END_PHRASE
-from mongodb import create_user, create_game, get_top_users, get_random_anecdote, connect
+from mongodb import create_user, create_game, get_top_users, get_random_anecdote, connect, voice_to_text
 from randomizer import *
 
 client = connect()
@@ -21,6 +21,14 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 mini_game = Game()
+
+
+@dp.message_handler(commands=['vtt'], commands_ignore_caption=False, content_types=types.ContentType.VOICE)
+async def vtt(message: types.Message):
+    if message.content_type():
+        await voice_to_text(message, bot)
+    else:
+        await message.answer('Мне нужно голосовое, чтобы привести его  🤬')
 
 
 @dp.message_handler(commands=['anecdote'])
