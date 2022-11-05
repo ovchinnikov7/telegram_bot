@@ -1,5 +1,5 @@
 import random
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 PROMPT = 'Угадайте, где лежит печенье 🍪 и постарайтесь не наткнуться на бомбу 💣'

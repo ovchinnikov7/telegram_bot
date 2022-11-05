@@ -1,5 +1,5 @@
-from typing import TypedDict, List
 from datetime import datetime
+from typing import TypedDict, List
 
 
 class UserType(TypedDict):

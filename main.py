@@ -1,14 +1,15 @@
-import os
 import logging
+import os
 
-from telegram import ParseMode
-from randomizer import *
-from mongodb import create_user, create_game, get_top_users, get_random_anecdote, connect
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher, filters
 from aiogram.utils import executor
+from telegram.parsemode import ParseMode
+
 from minigame import Game, PROMPT, GAME_STATUS, PLAYER_STATUS, ALREADY_PICKED_SLOT, GAME_ENDING, GAME_ENDED, \
     RESULT_ANNOUNCEMENTS, END_PHRASE
+from mongodb import create_user, create_game, get_top_users, get_random_anecdote, connect
+from randomizer import *
 
 client = connect()
 db = client.get_database(os.environ.get('MONGO_DB_NAME'))

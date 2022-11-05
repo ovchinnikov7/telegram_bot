@@ -1,16 +1,16 @@
 import os
-import certifi
-
-from os.path import dirname, join
 from datetime import datetime
+from os.path import dirname, join
+from typing import List, Optional
 
+import certifi
 import pymongo
 from aiogram.types import Message
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.database import Database
-from typing import List, Optional
+
 from db_types import UserType, AnecdoteType, GameType
 
 ca = certifi.where()
@@ -60,7 +60,8 @@ def update_user(db: Database, message: Message) -> Optional[bool]:
 
 def get_top_users(db: Database, message: Message) -> List[UserType]:
     users: Collection[UserType] = db.users
-    top_users = [user for user in users.find({"chat_id": message.chat.id}).sort('activity', pymongo.DESCENDING).limit(5)]
+    top_users = [user for user in
+                 users.find({"chat_id": message.chat.id}).sort('activity', pymongo.DESCENDING).limit(5)]
 
     return top_users
 
