@@ -1,6 +1,7 @@
 import random
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types.inline_keyboard_button import InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 PROMPT = 'Угадайте, где лежит печенье 🍪 и постарайтесь не наткнуться на бомбу 💣'
 GAME_STATUS = [GAME_ENDING, GAME_ENDED] = ['ENDING', 'ENDED']
@@ -49,26 +50,29 @@ class Game:
         self.game_going = True
 
     def reveal(self, player_id, player_username, button_id):
-        if player_id in self.players_results:
+        if str(player_id) in self.players_results:
             return ALREADY_PICKED_SLOT
         slot_result = self.answers[button_id]
         self.players_results.update({str(player_id): {"username": player_username, "result": slot_result}})
+        print(self.players_results)
         return slot_result
 
     def setup_board(self):
         self.answers = [get_random_slot_result(i) for i in range(self.slots_count)]
-        self.visual_board = InlineKeyboardMarkup(row_width=self.board_size)
-        self.visual_board.add(*[InlineKeyboardButton(UNKNOWN_SLOT, callback_data=i) for i in range(self.slots_count)])
-        self.visual_board.row(InlineKeyboardButton('Завершить игру', callback_data=GAME_ENDING))
+        self.visual_board = InlineKeyboardBuilder().row(
+            *[InlineKeyboardButton(text=UNKNOWN_SLOT, callback_data=i) for i in range(self.slots_count)],
+            width=self.board_size).row(InlineKeyboardButton(text='Завершить игру', callback_data=GAME_ENDING),
+                                       width=1).as_markup()
 
     def end_game(self):
         if not self.game_going:
             return GAME_ENDED
         for i in range(self.board_size):
             for j in range(self.board_size):
-                self.visual_board.inline_keyboard[i][j] = InlineKeyboardButton(self.answers[i + j],
+                self.visual_board.inline_keyboard[i][j] = InlineKeyboardButton(text=self.answers[i + j],
                                                                                callback_data=GAME_ENDED)
-        self.visual_board.inline_keyboard[-1][-1] = InlineKeyboardButton('Завершить игру', callback_data=GAME_ENDED)
+        self.visual_board.inline_keyboard[-1][-1] = InlineKeyboardButton(text='Завершить игру',
+                                                                         callback_data=GAME_ENDED)
         self.answers.clear()
         self.players_results.clear()
         self.game_going = False

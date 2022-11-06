@@ -1,6 +1,8 @@
 venv
 docker_data
 .idea
-#.env
+.env
 migration.py
 #_site
+stt_serverless.py
+stt.py
