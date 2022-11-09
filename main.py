@@ -7,7 +7,8 @@ from aiogram.client.bot import Bot
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.dispatcher.dispatcher import Dispatcher
 from aiogram.dispatcher.router import Router
-from aiogram.filters import Command, Text
+from aiogram.filters import Command
+from aiogram.types import FSInputFile
 from aiogram.types import Message, CallbackQuery
 from aiogram.types.bot_command import BotCommand
 from telegram.parsemode import ParseMode
@@ -34,7 +35,12 @@ yandex_helper = Yandex()
 @router.message(Command(commands=['stt']))
 async def stt(message: Message):
     if message.reply_to_message and message.reply_to_message.voice:
-        text = yandex_helper.stt(message, bot)
+        file_path = './stt.ogg'
+        await bot.download(message.reply_to_message.voice.file_id, file_path)
+        with open(file_path, 'rb') as f:
+            audio_file = f.read()
+        text = yandex_helper.stt(audio_file)
+        os.remove(file_path)
         await message.reply(text)
     else:
         await message.reply('Мне нужно голосовое, чтобы привести его  🤬')
@@ -43,16 +49,13 @@ async def stt(message: Message):
 @router.message(Command(commands=['tts']))
 async def tts(message: Message):
     if message.reply_to_message and message.reply_to_message.text:
-        file_path = yandex_helper.tts(text=message.reply_to_message.text, file_path='./audio_file.ogg')
-        print(file_path)
-        await message.reply_audio(audio=file_path)
-        os.remove(file_path)
-    elif message.text is not None:
-        file_path = yandex_helper.tts(text=message.text)
-        await message.reply_audio(audio=file_path)
+        file_path = './tts.ogg'
+        yandex_helper.tts(text=message.reply_to_message.text, file_path=file_path)
+        audio_file = FSInputFile("./tts.ogg")
+        await message.reply_audio(audio=audio_file, caption=f'🔉 Озвученный текст: \n"{message.reply_to_message.text}"')
         os.remove(file_path)
     else:
-        await message.answer('Мне нужно голосовое, чтобы привести его  🤬')
+        await message.answer('Мне нужен текст, чтобы его озвучить!  🤬')
 
 
 @router.message(Command(commands=['anecdote']))
